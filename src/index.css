@@ -41,6 +41,7 @@ ol, ul {
 }
 
 .container {
+  margin-top: 10%;
   display: flex;
   flex-direction: row;
   justify-content: center;

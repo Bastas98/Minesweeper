@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import ReactDOM from "react-dom";
-import Popup from "react-popup";
 import "./index.css";
 import buttonImage from "./images/Button.png";
 import BombImage from "./images/Bomb.png";
@@ -140,8 +139,22 @@ function isWin(board, isFlagged) {
         return false;
       }
     }
-    return true;
   }
+  return true;
+}
+
+function isLoss(board, isRevealed) {
+  console.log(board.isRevealed);
+  for (let i = 0; i < board.length; i++) {
+    for (let j = 0; j < board.length; j++) {
+      console.log(board[i][j] === "b");
+      if (board[i][j] === "b" && isRevealed[i][j] === "true") {
+        console.log(i, j);
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 function Game({ boardSize, numBombs }) {
@@ -158,6 +171,16 @@ function Game({ boardSize, numBombs }) {
       Array.from({ length: boardSize }, () => false)
     )
   );
+
+  useEffect(() => {
+    if (flagsLeft === 0) {
+      if (isWin(board, isFlagged)) {
+        window.confirm(
+          "Congratulations, you have Won! \nWould you like to Play Again?"
+        );
+      }
+    }
+  }, [flagsLeft]);
 
   const returnAdjacents = (i, j) => {
     let adjacentArray = [];
@@ -209,16 +232,6 @@ function Game({ boardSize, numBombs }) {
     }
     setisRevealed(tempIsRevealed);
   };
-
-  useEffect(() => {
-    if (flagsLeft === 0) {
-      if (isWin(board, isFlagged)) {
-        window.confirm(
-          "Congratulations, you have Won! \nWould you like to Play Again?"
-        );
-      }
-    }
-  }, [flagsLeft]);
 
   const callbackLeftClick = useCallback(
     (i, j) => {
