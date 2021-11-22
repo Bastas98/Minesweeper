@@ -135,12 +135,12 @@ function giveContent(board, isFlagged, isRevealed, i, j) {
 function isWin(board, isFlagged) {
   for (let i = 0; i < board.length; i++) {
     for (let j = 0; j < board.length; j++) {
-      if (board[i][j] === "b" && isFlagged[i][j] === "false") {
+      if (board[i][j] === "b" && isFlagged[i][j] === false) {
         return false;
       }
     }
-    return true;
   }
+  return true;
 }
 
 function Game({ boardSize, numBombs }) {
