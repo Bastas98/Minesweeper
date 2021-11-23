@@ -8,12 +8,20 @@ ol, ul {
   padding-left: 30px;
 }
 
+p {
+  margin: 2%;
+  display:inline-block;
+}
+
 .board-row:after {
   clear: both;
   content: "";
   display: table;
 }
 
+.game-header {
+  display: table;
+}
 .image1 {
   position: relative;
 }
@@ -53,7 +61,7 @@ ol, ul {
 }
 
 .game-info {
-  font-size: 48px;
+  font-size: 24px;
   color: #424242;
   margin-top: 20px;
   text-align: center;

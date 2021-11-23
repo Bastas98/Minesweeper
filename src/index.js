@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 import buttonImage from "./images/Button.png";
@@ -135,7 +135,7 @@ function giveContent(board, isFlagged, isRevealed, i, j) {
 function isWin(board, isFlagged) {
   for (let i = 0; i < board.length; i++) {
     for (let j = 0; j < board.length; j++) {
-      if (board[i][j] === "b" && isFlagged[i][j] === "false") {
+      if (board[i][j] === "b" && isFlagged[i][j] === false) {
         return false;
       }
     }
@@ -143,23 +143,13 @@ function isWin(board, isFlagged) {
   return true;
 }
 
-function isLoss(board, isRevealed) {
-  console.log(board.isRevealed);
-  for (let i = 0; i < board.length; i++) {
-    for (let j = 0; j < board.length; j++) {
-      console.log(board[i][j] === "b");
-      if (board[i][j] === "b" && isRevealed[i][j] === "true") {
-        console.log(i, j);
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
 function Game({ boardSize, numBombs }) {
   const [board, setBoard] = useState(buildBoard(boardSize, numBombs));
+  const [timer, setTimer] = useState(0);
+  const [timerOn, setTimerOn] = useState(true);
   const [flagsLeft, setFlagsLeft] = useState(numBombs);
+
+  const timerRef = useRef(null);
 
   const [isFlagged, setisFlagged] = useState(
     Array.from({ length: boardSize }, () =>
@@ -173,65 +163,97 @@ function Game({ boardSize, numBombs }) {
   );
 
   useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setTimer((timer) => timer + 1);
+    }, 1000);
+  }, []);
+
+  const returnAdjacents = useCallback(
+    (i, j) => {
+      let adjacentArray = [];
+      const adjacentOffsets = [
+        [-1, -1],
+        [-1, 0],
+        [-1, 1],
+        [0, -1],
+        [0, 1],
+        [1, -1],
+        [1, 0],
+        [1, 1],
+      ];
+      let adjacentI, adjacentJ;
+
+      adjacentOffsets.forEach(([x, y]) => {
+        adjacentI = i + y;
+        adjacentJ = j + x;
+
+        if (
+          adjacentI < boardSize &&
+          adjacentI >= 0 &&
+          adjacentJ < boardSize &&
+          adjacentJ >= 0
+        ) {
+          adjacentArray.push({ i: adjacentI, j: adjacentJ });
+        }
+      });
+      return adjacentArray;
+    },
+    [boardSize]
+  );
+
+  const revealAdjacents = useCallback(
+    (i, j) => {
+      const tempIsRevealed = isRevealed.map((row) => row.map((col) => col));
+      let revealArray = returnAdjacents(i, j);
+      let currentCell;
+
+      while (revealArray.length > 0) {
+        currentCell = revealArray.pop();
+        if (tempIsRevealed[currentCell.i][currentCell.j] === false) {
+          if (board[currentCell.i][currentCell.j] === null) {
+            returnAdjacents(currentCell.i, currentCell.j).map((cell) =>
+              revealArray.push(cell)
+            );
+            tempIsRevealed[currentCell.i][currentCell.j] = true;
+          } else if (typeof board[currentCell.i][currentCell.j] === "number") {
+            tempIsRevealed[currentCell.i][currentCell.j] = true;
+          }
+        }
+      }
+      setisRevealed(tempIsRevealed);
+    },
+    [board, isRevealed, returnAdjacents]
+  );
+
+  const resetBoard = useCallback(() => {
+    setBoard(buildBoard(boardSize, numBombs));
+    setFlagsLeft(numBombs);
+
+    setisFlagged(
+      Array.from({ length: boardSize }, () =>
+        Array.from({ length: boardSize }, () => false)
+      )
+    );
+    setisRevealed(
+      Array.from({ length: boardSize }, () =>
+        Array.from({ length: boardSize }, () => false)
+      )
+    );
+  }, [boardSize, numBombs]);
+
+  useEffect(() => {
     if (flagsLeft === 0) {
       if (isWin(board, isFlagged)) {
-        window.confirm(
-          "Congratulations, you have Won! \nWould you like to Play Again?"
-        );
-      }
-    }
-  }, [flagsLeft]);
-
-  const returnAdjacents = (i, j) => {
-    let adjacentArray = [];
-    const adjacentOffsets = [
-      [-1, -1],
-      [-1, 0],
-      [-1, 1],
-      [0, -1],
-      [0, 1],
-      [1, -1],
-      [1, 0],
-      [1, 1],
-    ];
-    let adjacentI, adjacentJ;
-
-    adjacentOffsets.forEach(([x, y]) => {
-      adjacentI = i + y;
-      adjacentJ = j + x;
-
-      if (
-        adjacentI < boardSize &&
-        adjacentI >= 0 &&
-        adjacentJ < boardSize &&
-        adjacentJ >= 0
-      ) {
-        adjacentArray.push({ i: adjacentI, j: adjacentJ });
-      }
-    });
-    return adjacentArray;
-  };
-
-  const revealAdjacents = (i, j) => {
-    const tempIsRevealed = isRevealed.map((row) => row.map((col) => col));
-    let revealArray = returnAdjacents(i, j);
-    let currentCell;
-
-    while (revealArray.length > 0) {
-      currentCell = revealArray.pop();
-      if (tempIsRevealed[currentCell.i][currentCell.j] === false) {
-        if (board[currentCell.i][currentCell.j] === null) {
-          returnAdjacents(currentCell.i, currentCell.j).map((cell) =>
-            revealArray.push(cell)
-          );
-          tempIsRevealed[currentCell.i][currentCell.j] = true;
-        } else if (typeof board[currentCell.i][currentCell.j] === "number") {
-          tempIsRevealed[currentCell.i][currentCell.j] = true;
+        if (
+          window.confirm(
+            "Congratulations, you have Won! \nWould you like to Play Again?"
+          )
+        ) {
+          resetBoard();
         }
       }
     }
-    setisRevealed(tempIsRevealed);
-  };
+  }, [board, flagsLeft, isFlagged, resetBoard]);
 
   const callbackLeftClick = useCallback(
     (i, j) => {
@@ -243,13 +265,17 @@ function Game({ boardSize, numBombs }) {
         if (board[i][j] === null) {
           revealAdjacents(i, j);
         } else if (board[i][j] === "b") {
-          window.confirm(
-            "Unlucky you clicked on a Bomb! \nWould you like to Play Again?"
-          );
+          if (
+            window.confirm(
+              "Unlucky you clicked on a Bomb! \nWould you like to Play Again?"
+            )
+          ) {
+            resetBoard();
+          }
         }
       }
     },
-    [isRevealed, isFlagged, board]
+    [isRevealed, isFlagged, board, revealAdjacents, resetBoard]
   );
 
   const callbackRightClick = useCallback(
@@ -270,6 +296,10 @@ function Game({ boardSize, numBombs }) {
   return (
     <div className="container">
       <div className="game">
+        <div className="game-info">
+          <p>Time Spent: {timer}</p>
+          <p>Flags Left: {flagsLeft}</p>
+        </div>
         <div className="game-board">
           {board.map((row, idx) => (
             <div className="board-row" key={idx}>
@@ -290,8 +320,6 @@ function Game({ boardSize, numBombs }) {
 }
 
 ReactDOM.render(
-  <div>
-    <Game boardSize={9} numBombs={2} />
-  </div>,
+  <Game boardSize={9} numBombs={2} />,
   document.getElementById("root")
 );
